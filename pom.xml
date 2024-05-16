@@ -6,12 +6,12 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.4.4</version>
+		<version>3.2.5</version>
 		<relativePath />
 	</parent>
 	<artifactId>shakeToPayClientExample</artifactId>
 	<name>shakeToPayClient</name>
-	<version>0.1</version>
+	<version>0.0.2</version>
 
 	<dependencies>
 		<dependency>
@@ -47,7 +47,7 @@
 	</dependencies>
 
 	<build>
-		<finalName>exampleClient</finalName>
+		<finalName>exampleClient-${version}</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

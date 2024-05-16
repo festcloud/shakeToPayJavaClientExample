@@ -14,8 +14,7 @@ class PerformController {
     private final WebsocketDataHandler dataHandler;
 
     /**
-     * Данный метод можно использовать для эмуляции получения сообщения по
-     * вебсокету.
+     * This method should be used for emulation getting the message by websocket
      */
     @PostMapping(path = "/performRequest", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     String performRequest(@RequestBody String message) {

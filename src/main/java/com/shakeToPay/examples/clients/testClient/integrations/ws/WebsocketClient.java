@@ -1,10 +1,16 @@
 package com.shakeToPay.examples.clients.testClient.integrations.ws;
 
+import jakarta.websocket.ClientEndpointConfig;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.DeploymentException;
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.MessageHandler;
+import jakarta.websocket.Session;
+import jakarta.websocket.WebSocketContainer;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.websocket.*;
-import javax.websocket.ClientEndpointConfig.Builder;
-import javax.websocket.ClientEndpointConfig.Configurator;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -24,12 +30,12 @@ class WebsocketClient {
     private boolean connected;
 
     WebsocketClient(String uri, String user, String password, MessageHandler.Whole<String> messageHandler) throws URISyntaxException {
-        Builder configBuilder = Builder.create();
+        ClientEndpointConfig.Builder configBuilder = ClientEndpointConfig.Builder.create();
 
         Base64.Encoder encoder = Base64.getEncoder();
         String authHeaderValue = "Basic " + encoder.encodeToString((user + ":" + password).getBytes());
 
-        configBuilder.configurator(new Configurator() {
+        configBuilder.configurator(new ClientEndpointConfig.Configurator() {
             @Override
             public void beforeRequest(Map<String, List<String>> headers) {
                 headers.put("Authorization", Arrays.asList(authHeaderValue));

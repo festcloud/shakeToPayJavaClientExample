@@ -30,6 +30,8 @@ import java.util.Base64;
 public class MonoConnector {
 
     private static final String COMMON_ACTION_CONTEXT = "/callback";
+    private static final String COOKIE_HEADER_NAME = "cookie";
+    private static final String COOKIE_HEADER_VALUE = "system=!FEST";
 
     private final String secretKey;
     private final WebClient webClient;
@@ -48,6 +50,7 @@ public class MonoConnector {
                 + monoUrl)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(COOKIE_HEADER_NAME, COOKIE_HEADER_VALUE)
                 .defaultHeader("restoId", restoId);
 
         webClient = builder.build();
