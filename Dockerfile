@@ -2,7 +2,7 @@ FROM maven:3.6-jdk-11 as BUILD
 
 COPY src /usr/project/src
 COPY pom.xml /usr/project
-COPY client.props /usr/project/client.properties
+COPY client.properties /usr/project/client.properties
 RUN mvn -f /usr/project/pom.xml clean package
 
 

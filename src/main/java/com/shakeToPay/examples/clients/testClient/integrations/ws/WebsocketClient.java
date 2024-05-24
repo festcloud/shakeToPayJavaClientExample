@@ -1,10 +1,14 @@
 package com.shakeToPay.examples.clients.testClient.integrations.ws;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.websocket.*;
+import javax.websocket.ClientEndpointConfig;
 import javax.websocket.ClientEndpointConfig.Builder;
-import javax.websocket.ClientEndpointConfig.Configurator;
+import javax.websocket.ContainerProvider;
+import javax.websocket.DeploymentException;
+import javax.websocket.MessageHandler.Whole;
+import javax.websocket.WebSocketContainer;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -12,38 +16,28 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Base64.Encoder;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 class WebsocketClient {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClient.class);
     private final WebsocketEndpoint websocketEndpoint;
     private final ClientEndpointConfig clientConfig;
     private final URI uri;
     private boolean connected;
 
-    WebsocketClient(String uri, String user, String password, MessageHandler.Whole<String> messageHandler) throws URISyntaxException {
+    WebsocketClient(String uri, String user, String password, Whole<String> messageHandler) throws URISyntaxException {
         Builder configBuilder = Builder.create();
-
-        Base64.Encoder encoder = Base64.getEncoder();
-        String authHeaderValue = "Basic " + encoder.encodeToString((user + ":" + password).getBytes());
-
-        configBuilder.configurator(new Configurator() {
-            @Override
-            public void beforeRequest(Map<String, List<String>> headers) {
-                headers.put("Authorization", Arrays.asList(authHeaderValue));
-            }
-        });
-
-        clientConfig = configBuilder.build();
-
+        Encoder encoder = Base64.getEncoder();
+        String var10000 = encoder.encodeToString((user + ":" + password).getBytes());
+        String authHeaderValue = "Basic " + var10000;
+        configBuilder.configurator(new WebsocketClientConfig(authHeaderValue));
+        this.clientConfig = configBuilder.build();
         this.uri = new URI(uri);
-
         LOGGER.info("Connect ws params uri: {}, Authorization header: {}", uri, authHeaderValue);
-
         this.websocketEndpoint = new WebsocketEndpoint(messageHandler, new EventListenerI() {
-
             @Override
             public void notify(Object o) {
                 connected = false;
@@ -53,87 +47,58 @@ class WebsocketClient {
 
     void connect() throws IOException {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+
         try {
-            container.connectToServer(websocketEndpoint, clientConfig, uri);
-            connected = true;
-        } catch (DeploymentException e) {
-            connected = false;
-            throw new IOException("Error while connecting to websocket server: " + uri, e);
+            container.connectToServer(this.websocketEndpoint, this.clientConfig, this.uri);
+            this.connected = true;
+        } catch (DeploymentException var3) {
+            this.connected = false;
+            throw new IOException("Error while connecting to websocket server: " + this.uri, var3);
         }
     }
 
     boolean sendMessage(String message) throws IOException {
-        return sendMessage(message, false);
+        return this.sendMessage(message, false);
     }
 
     boolean sendMessage(String message, boolean isPing) throws IOException {
-        if (websocketEndpoint.session == null) {
+        if (this.websocketEndpoint.session == null) {
             return false;
-        }
-        if (isPing) {
-            websocketEndpoint.session.getBasicRemote().sendPing(ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8)));
         } else {
-            websocketEndpoint.session.getBasicRemote().sendText(message);
+            if (isPing) {
+                this.websocketEndpoint.session.getBasicRemote().sendPing(ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8)));
+            } else {
+                this.websocketEndpoint.session.getBasicRemote().sendText(message);
+            }
+
+            return true;
         }
-        return true;
     }
 
     void close() throws IOException {
-        connected = false;
-        if (websocketEndpoint.session != null) {
-            websocketEndpoint.session.close();
+        this.connected = false;
+        if (this.websocketEndpoint.session != null) {
+            this.websocketEndpoint.session.close();
         }
+
     }
 
     boolean isConnected() {
-        return connected;
-    }
-}
-
-@Slf4j
-class WebsocketEndpoint extends Endpoint {
-
-    Session session = null;
-    private final MessageHandler.Whole<String> messageHandler;
-    private final EventListenerI closeEventListener;
-
-    WebsocketEndpoint(MessageHandler.Whole<String> messageHandler, EventListenerI closeEventListener) {
-        this.messageHandler = messageHandler;
-        this.closeEventListener = closeEventListener;
+        return this.connected;
     }
 
-    @Override
-    public void onOpen(Session session, EndpointConfig endpointConfig) {
-        this.session = session;
-        if (messageHandler != null) {
-            session.addMessageHandler(new MessageHandler.Whole<String>() {
+    class WebsocketClientConfig extends ClientEndpointConfig.Configurator {
+        private final String authHeaderValue;
+        private static final String COOKIE_HEADER_NAME = "cookie";
+        private static final String COOKIE_HEADER_VALUE = "system=!FEST";
 
-                @Override
-                public void onMessage(String message) {
-                    messageHandler.onMessage(message);
-                }
-            });
+        WebsocketClientConfig(final String authHeaderValue) {
+            this.authHeaderValue = authHeaderValue;
+        }
+
+        public void beforeRequest(Map<String, List<String>> headers) {
+            headers.put("Authorization", Arrays.asList(this.authHeaderValue));
+            headers.put(COOKIE_HEADER_NAME, Collections.singletonList(COOKIE_HEADER_VALUE));
         }
     }
-
-    @Override
-    public void onError(Session session, Throwable throwable) {
-        try {
-            LOGGER.error("websocket error: ", throwable);
-            super.onError(session, throwable);
-        } catch (Exception ex) {
-            LOGGER.error("websocket onError: ", ex);
-        }
-    }
-
-    @Override
-    public void onClose(Session session, CloseReason closeReason) {
-        LOGGER.error("close websocket connection, resason: {}", closeReason);
-        super.onClose(session, closeReason);
-        closeEventListener.notify(null);
-    }
-}
-
-interface EventListenerI {
-    void notify(Object o);
 }
